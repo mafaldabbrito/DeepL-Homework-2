@@ -1,0 +1,11 @@
+{
+  "num_samples": 96261,
+  "seq_min_len": 30,
+  "seq_max_len": 41,
+  "seq_mean_len": 36.05667923665867,
+  "mask_fraction": 0.9946187734603882,
+  "target_min": -4.412755966186523,
+  "target_max": 8.26677417755127,
+  "target_mean": -7.968618542797401e-10,
+  "target_std": 0.9999972581863403
+}
