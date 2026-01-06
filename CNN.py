@@ -26,6 +26,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from typing import Dict, List, Tuple, Optional
 
@@ -63,10 +64,10 @@ class RNABindingCNN(nn.Module):
     
     def __init__(
         self, 
-        num_filters: int = 64,
+        num_filters: int = 96,
         kernel_size: int = 8,
         pooling_type: str = 'global_max',
-        dropout_rate: float = 0.3,
+        dropout_rate: float = 0.5,
         input_channels: int = 4,
         seq_length: int = 41
     ):
@@ -82,8 +83,14 @@ class RNABindingCNN(nn.Module):
             out_channels=num_filters,
             kernel_size=kernel_size,
             stride=1,
-            padding=kernel_size // 2  # Keep sequence length similar
+            padding=(kernel_size - 1) // 2  # Keep sequence length similar
         )
+        
+        # Batch Normalization after convolution for better regularization
+        self.bn1 = nn.BatchNorm1d(num_filters)
+        
+        # Dropout after convolution for stronger regularization
+        self.dropout_conv = nn.Dropout(dropout_rate * 0.5)  # Lighter dropout for conv layer
         
         # Pooling Layer: Aggregates motif information
         self.pool_size = 2  # For local max pooling
@@ -102,7 +109,11 @@ class RNABindingCNN(nn.Module):
         
         # Fully Connected Layers: Map motif features to binding intensity
         self.fc1 = nn.Linear(fc_input_size, 128)
+        self.bn_fc1 = nn.BatchNorm1d(128)
+        
         self.fc2 = nn.Linear(128, 64)
+        self.bn_fc2 = nn.BatchNorm1d(64)
+        
         self.fc3 = nn.Linear(64, 1)  # Output: single binding intensity value
         
         # Dropout for regularization
@@ -122,8 +133,11 @@ class RNABindingCNN(nn.Module):
         # Conv1d expects: (batch, channels, length)
         x = x.transpose(1, 2)  # -> (batch, 4, 41)
         
-        # Apply Conv -> ReLU
-        x = F.relu(self.conv1(x))  # -> (batch, num_filters, ~41)
+        # Apply Conv -> BatchNorm -> ReLU -> Dropout
+        x = self.conv1(x)  # -> (batch, num_filters, ~41)
+        x = self.bn1(x)
+        x = F.relu(x)
+        x = self.dropout_conv(x)
         
         # Pooling: Aggregate motif information
         if self.pooling_type == 'global_max':
@@ -138,11 +152,15 @@ class RNABindingCNN(nn.Module):
             # No pooling: Preserve full positional information
             x = torch.flatten(x, 1)  # Flatten
         
-        # Fully connected layers with ReLU and dropout
-        x = F.relu(self.fc1(x))
+        # Fully connected layers with BatchNorm, ReLU and dropout
+        x = self.fc1(x)
+        x = self.bn_fc1(x)
+        x = F.relu(x)
         x = self.dropout(x)
         
-        x = F.relu(self.fc2(x))
+        x = self.fc2(x)
+        x = self.bn_fc2(x)
+        x = F.relu(x)
         x = self.dropout(x)
         
         x = self.fc3(x)  # -> (batch, 1)
@@ -150,7 +168,7 @@ class RNABindingCNN(nn.Module):
         return x
 
 # ============================================================================
-# STEP 2: Training Function
+# Training Function
 # ============================================================================
 
 def train_epoch(
@@ -218,7 +236,7 @@ def train_epoch(
 
 
 # ============================================================================
-# STEP 3: Evaluation Function
+# Evaluation Function
 # ============================================================================
 
 def evaluate(
@@ -268,7 +286,7 @@ def evaluate(
 
 
 # ============================================================================
-# STEP 4: Full Training Loop
+# Full Training Loop
 # ============================================================================
 
 def train_model(
@@ -278,7 +296,9 @@ def train_model(
     num_epochs: int,
     learning_rate: float,
     device: torch.device,
-    save_path: Optional[str] = None
+    save_path: Optional[str] = None,
+    weight_decay: float = 1e-3,
+    early_stopping_patience: int = 3
 ) -> Dict[str, List[float]]:
     """
     Train the model for multiple epochs with validation.
@@ -298,9 +318,10 @@ def train_model(
     print(f"\n{'='*70}")
     print(f"Starting Training on {device}")
     print(f"{'='*70}")
+    print(f"Regularization: Weight Decay = {weight_decay}, Early Stopping Patience = {early_stopping_patience}")
     
-    # Initialize optimizer
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # Initialize optimizer with weight decay (L2 regularization)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     
     # Track metrics
     history = {
@@ -311,6 +332,7 @@ def train_model(
     }
     
     best_val_corr = -1.0
+    patience_counter = 0
     
     # Training loop
     for epoch in range(num_epochs):
@@ -334,9 +356,10 @@ def train_model(
         print(f"  Train Loss: {train_loss:.4f} | Train Corr: {train_corr:.4f}")
         print(f"  Val Loss:   {val_loss:.4f} | Val Corr:   {val_corr:.4f}")
         
-        # Save best model
+        # Save best model and check early stopping
         if val_corr > best_val_corr:
             best_val_corr = val_corr
+            patience_counter = 0  # Reset patience counter
             if save_path:
                 torch.save({
                     'epoch': epoch,
@@ -345,6 +368,14 @@ def train_model(
                     'val_corr': val_corr,
                 }, save_path)
                 print(f"  >>> New best model saved! (Val Corr: {val_corr:.4f})")
+        else:
+            patience_counter += 1
+            print(f"  >>> No improvement for {patience_counter} epoch(s)")
+            
+            if patience_counter >= early_stopping_patience:
+                print(f"\n  Early stopping triggered after {epoch + 1} epochs!")
+                print(f"  Best validation correlation: {best_val_corr:.4f}")
+                break
     
     print(f"\n{'='*70}")
     print(f"Training Complete! Best Val Correlation: {best_val_corr:.4f}")
@@ -354,7 +385,7 @@ def train_model(
 
 
 # ============================================================================
-# STEP 5: Hyperparameter Tuning
+# Hyperparameter Tuning
 # ============================================================================
 
 def hyperparameter_search(
@@ -371,8 +402,8 @@ def hyperparameter_search(
     - Filter sizes (32, 64, 128)
     - Kernel sizes (6, 8, 10)
     - Pooling types (global_max, local_max, none)
-    - Dropout rates (0.2, 0.3, 0.5)
-    - Learning rates (1e-3, 5e-4)
+    - Dropout rates (0.2, 0.3, 0.5, 0.6)
+    - Learning rates (1e-3, 2e-4, 5e-4)
     
     Args:
         protein_name: Name of the protein to train on
@@ -391,11 +422,11 @@ def hyperparameter_search(
     
     # Define hyperparameter grid
     param_grid = {
-        'num_filters': [32, 64, 128],
-        'kernel_size': [6, 8, 10],
+        'num_filters': [32, 64, 96],
+        'kernel_size': [6, 8, 10, 12],
         'pooling_type': ['global_max', 'local_max', 'none'],
-        'dropout_rate': [0.2, 0.3, 0.5],
-        'learning_rate': [1e-3, 5e-4]
+        'dropout_rate': [0.2, 0.3, 0.5, 0.6],
+        'learning_rate': [1e-3, 2e-4, 5e-4]
     }
     
     # Load data once - create loader instance that will be reused
@@ -417,34 +448,27 @@ def hyperparameter_search(
     best_val_corr = -1.0
     best_config = None
     
-    # Smart sampling: Test each key hyperparameter variation
+    # 6 optimized variations around the best performer (Rank 1: 0.6016 correlation)
+    # Best: 64 filters, kernel 8, dropout 0.5, learning_rate 0.0005
     test_configs = [
-        # Baseline
-        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.3, 'learning_rate': 1e-3},
-        # Vary filter size
-        {'num_filters': 32, 'kernel_size': 8, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.3, 'learning_rate': 1e-3},
-        {'num_filters': 128, 'kernel_size': 8, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.3, 'learning_rate': 1e-3},
-        # Vary kernel size
-        {'num_filters': 64, 'kernel_size': 6, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.3, 'learning_rate': 1e-3},
-        {'num_filters': 64, 'kernel_size': 10, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.3, 'learning_rate': 1e-3},
-        # Vary pooling
+        # Rank 1: Baseline (best performer - keep it)
         {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'local_max', 
-         'dropout_rate': 0.3, 'learning_rate': 1e-3},
-        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'none', 
-         'dropout_rate': 0.3, 'learning_rate': 1e-3},
-        # Vary dropout
-        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.2, 'learning_rate': 1e-3},
-        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.5, 'learning_rate': 1e-3},
-        # Vary learning rate
-        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'global_max', 
-         'dropout_rate': 0.3, 'learning_rate': 5e-4},
+         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 1: Lower learning rate for better convergence
+        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'local_max', 
+         'dropout_rate': 0.5, 'learning_rate': 2e-4},
+        # Variation 2: Increase filters to capture more motifs
+        {'num_filters': 96, 'kernel_size': 8, 'pooling_type': 'local_max', 
+         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 3: Smaller kernel for shorter motifs
+        {'num_filters': 64, 'kernel_size': 6, 'pooling_type': 'local_max', 
+         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 4: Larger kernel for longer motifs
+        {'num_filters': 64, 'kernel_size': 12, 'pooling_type': 'local_max', 
+         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 5: More filters + lower learning rate (refined search)
+        {'num_filters': 96, 'kernel_size': 8, 'pooling_type': 'local_max', 
+         'dropout_rate': 0.5, 'learning_rate': 3e-4},
     ]
     
     total_configs = len(test_configs)
@@ -504,7 +528,7 @@ def hyperparameter_search(
 
 
 # ============================================================================
-# STEP 6: Data Exploration Only (summary + plots)
+# Data Exploration Only (summary + plots)
 # ============================================================================
 
 def run_data_exploration(
@@ -533,7 +557,7 @@ def run_data_exploration(
 
 
 # ============================================================================
-# STEP 7: Main Execution
+# Main Execution
 # ============================================================================
 
 def main():
@@ -578,7 +602,7 @@ def main():
         return
 
     # ========================================================================
-    # Option 1: Hyperparameter Search (Time-consuming but thorough)
+    # Hyperparameter Search
     # ========================================================================
 
     if args.hyperparam_search:
@@ -606,18 +630,18 @@ def main():
 
     else:
         best_config = {
-            'num_filters': 64,
+            'num_filters': 96,
             'kernel_size': 8,
-            'pooling_type': 'global_max',
-            'dropout_rate': 0.3,
-            'learning_rate': 1e-3
+            'pooling_type': 'local_max',
+            'dropout_rate': 0.6,
+            'learning_rate': 5e-4
         }
         print(f"\nUsing default configuration:")
         for key, value in best_config.items():
             print(f"  {key}: {value}")
 
     # ========================================================================
-    # Option 2: Train Final Model with Best/Default Configuration
+    # Train Final Model with Best/Default Configuration
     # ========================================================================
 
     print(f"\n{'='*70}")
@@ -685,7 +709,9 @@ def main():
         json.dump(final_results, f, indent=2)
     print(f"\nResults saved to {results_file}")
 
-    epochs = list(range(1, args.epochs + 1))
+    # Use actual number of epochs from history (handles early stopping)
+    actual_epochs = len(history['train_loss'])
+    epochs = list(range(1, actual_epochs + 1))
 
     plot(
         epochs=epochs,
