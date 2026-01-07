@@ -206,7 +206,7 @@ def main_q1_2(use_softmax):
     }
 
     filename_suffix = "softmax" if use_softmax else "logits"
-    torch.save(checkpoint, f"q1_2_maxpool_{filename_suffix}_checkpoint.pth")
+    torch.save(checkpoint, f"maxpool_{filename_suffix}_checkpoint.pth")
     print(f"Saved checkpoint for {filename_suffix} version.")
 
     #Save the model
@@ -236,9 +236,9 @@ def main_q1_2(use_softmax):
         print(f"Created directory: {results_dir}")
 
     if use_softmax:
-        config = "lr0.001_adam_maxpool_softmax"
+        config = "maxpool_softmax"
     else:
-        config = "lr0.001_adam_maxpool_nosoftmax"
+        config = "maxpool_logits"
 
     epoch_range = range(1, epochs + 1)
 

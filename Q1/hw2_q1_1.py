@@ -200,7 +200,7 @@ def main_q1_1(use_softmax):
     }
 
     filename_suffix = "softmax" if use_softmax else "logits"
-    torch.save(checkpoint, f"q1_1_{filename_suffix}_checkpoint.pth")
+    torch.save(checkpoint, f"nomaxpool_{filename_suffix}_checkpoint.pth")
     print(f"Saved checkpoint for {filename_suffix} version.")
 
     #Save the model
@@ -209,7 +209,7 @@ def main_q1_1(use_softmax):
 
     print(f"\nRESULTS ({filename_suffix}):")
     print(f"Best Validation Accuracy: {best_val_acc:.4f}")
-    print(f"Test Accuracy at Best Val: {best_model_test_acc:.4f} <--- REPORT THIS IN PAPER")
+    print(f"Test Accuracy at Best Val: {best_model_test_acc:.4f}")
 
 
     # --------- After Training ----------
@@ -230,14 +230,14 @@ def main_q1_1(use_softmax):
         print(f"Created directory: {results_dir}")
 
     if use_softmax:
-        config = "lr0.001_adam_nomaxpool_softmax"
+        config = "nomaxpool_softmax"
     else:
-        config = "lr0.001_adam_nomaxpool_nosoftmax"
+        config = "nomaxpool_logits"
 
     epoch_range = range(1, epochs + 1)
 
-    plot(epoch_range, train_losses, ylabel='Loss', name='./results_q1_1/CNN-training-loss-{}'.format(config))
-    plot(epoch_range, val_accs, ylabel='Accuracy', name='./results_q1_1/CNN-validation-accuracy-{}'.format(config))
+    plot(epoch_range, train_losses, ylabel='Loss', name=f'{results_dir}/CNN-training-loss-{config}')
+    plot(epoch_range, val_accs, ylabel='Accuracy', name=f'{results_dir}/CNN-validation-accuracy-{config}')
 
 if __name__ == '__main__':
     main_q1_1(False)
