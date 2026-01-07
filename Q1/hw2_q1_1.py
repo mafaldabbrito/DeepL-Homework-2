@@ -20,6 +20,7 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import accuracy_score
 
 import time
+import os
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -152,8 +153,6 @@ def main_q1_1(use_softmax):
     test_loader  = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # initialize the model
-    # NOTE: keep use_softmax=False for training with CrossEntropyLoss
-    use_softmax=True
     model = Net(use_softmax).to(device) 
 
     # get an optimizer (Adam)
@@ -163,10 +162,11 @@ def main_q1_1(use_softmax):
     criterion = nn.CrossEntropyLoss()
 
     # training loop
-    ### you can use the code below or implement your own loop ###
     train_losses = []
     val_accs = []
-    test_accs = []
+    best_val_acc = 0.0
+    best_model_test_acc = 0.0
+
     for epoch in range(epochs):
 
         epoch_start = time.time()
@@ -178,7 +178,10 @@ def main_q1_1(use_softmax):
         val_accs.append(val_acc)
 
         test_acc = evaluate(test_loader, model)
-        test_accs.append(test_acc)
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_model_test_acc = test_acc
 
         epoch_end = time.time()
         epoch_time = epoch_end - epoch_start
@@ -190,19 +193,23 @@ def main_q1_1(use_softmax):
 
     checkpoint = {
         'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
         'train_losses': train_losses,
         'val_accs': val_accs,
-        'test_accs': test_accs,
-        'epoch': epochs
+        'best_val_acc': best_val_acc,
+        'best_test_acc': best_model_test_acc 
     }
 
-    torch.save(checkpoint, "q1_1_nomaxpool_softmax_bloodmnist_checkpoint.pth")
-    print("Saved checkpoint with model and metrics.")
+    filename_suffix = "softmax" if use_softmax else "logits"
+    torch.save(checkpoint, f"q1_1_{filename_suffix}_checkpoint.pth")
+    print(f"Saved checkpoint for {filename_suffix} version.")
 
     #Save the model
     #torch.save(model.state_dict(), "bloodmnist_cnn.pth")
     #print("Model saved as bloodmnist_cnn.pth")
+
+    print(f"\nRESULTS ({filename_suffix}):")
+    print(f"Best Validation Accuracy: {best_val_acc:.4f}")
+    print(f"Test Accuracy at Best Val: {best_model_test_acc:.4f} <--- REPORT THIS IN PAPER")
 
 
     # --------- After Training ----------
@@ -216,6 +223,12 @@ def main_q1_1(use_softmax):
 
     # config = "{}-{}-{}-{}-{}".format(opt.learning_rate, opt.optimizer, opt.no_maxpool, opt.no_softmax,)
     # config = "{}".format(str(0.1))
+
+    results_dir = './results_q1_1'
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
+        print(f"Created directory: {results_dir}")
+
     if use_softmax:
         config = "lr0.001_adam_nomaxpool_softmax"
     else:
@@ -225,7 +238,6 @@ def main_q1_1(use_softmax):
 
     plot(epoch_range, train_losses, ylabel='Loss', name='./results_q1_1/CNN-training-loss-{}'.format(config))
     plot(epoch_range, val_accs, ylabel='Accuracy', name='./results_q1_1/CNN-validation-accuracy-{}'.format(config))
-    plot(epoch_range, test_accs, ylabel='Accuracy', name='./results_q1_1/CNN-test-accuracy-{}'.format(config))
 
 if __name__ == '__main__':
     main_q1_1(False)
