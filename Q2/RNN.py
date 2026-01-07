@@ -11,7 +11,7 @@ import json
 import os
 from typing import Dict, List, Tuple, Optional
 
-import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -154,11 +154,11 @@ def train_epoch(
 		total_corr += corr.item()
 		num_batches += 1
 
-		if (batch_idx + 1) % 50 == 0:
-			print(
-				f"  Batch {batch_idx + 1}/{len(train_loader)}: "
-				f"Loss = {loss.item():.4f}, Corr = {corr.item():.4f}"
-			)
+		# if (batch_idx + 1) % 50 == 0:
+		# 	print(
+		# 		f"  Batch {batch_idx + 1}/{len(train_loader)}: "
+		# 		f"Loss = {loss.item():.4f}, Corr = {corr.item():.4f}"
+		# 	)
 
 	avg_loss = total_loss / num_batches
 	avg_corr = total_corr / num_batches

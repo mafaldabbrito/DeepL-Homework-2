@@ -21,7 +21,6 @@ Key Features:
 import argparse
 import json
 import os
-import itertools
 import numpy as np
 import torch
 import torch.nn as nn
