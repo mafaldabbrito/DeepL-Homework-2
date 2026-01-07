@@ -30,8 +30,7 @@ from torch.utils.data import DataLoader
 from typing import Dict, List, Tuple, Optional
 
 from utils import (
-    load_rnacompete_data,
-    RNACompeteLoader,  # Import the loader class directly
+    RNACompeteLoader,
     configure_seed, 
     masked_mse_loss, 
     masked_spearman_correlation,
@@ -42,7 +41,7 @@ from config import RNAConfig
 
 
 # ============================================================================
-# STEP 1: Define the CNN Model Architecture
+# Define the CNN Model Architecture
 # ============================================================================
 
 class RNABindingCNN(nn.Module):
@@ -55,7 +54,6 @@ class RNABindingCNN(nn.Module):
     Args:
         num_filters: Number of convolutional filters (motif detectors)
         kernel_size: Size of each filter (motif length to detect)
-        pooling_type: Type of pooling ('global_max', 'local_max', 'none')
         dropout_rate: Dropout probability for regularization
         input_channels: Number of input channels (4 for one-hot RNA)
         seq_length: Length of input sequence (41 for RNAcompete)
@@ -65,14 +63,11 @@ class RNABindingCNN(nn.Module):
         self, 
         num_filters: int = 96,
         kernel_size: int = 8,
-        pooling_type: str = 'global_max',
         dropout_rate: float = 0.5,
         input_channels: int = 4,
         seq_length: int = 41
     ):
         super(RNABindingCNN, self).__init__()
-        
-        self.pooling_type = pooling_type
         self.seq_length = seq_length
         
         # Convolutional Layer: Each filter acts as a motif detector
@@ -92,19 +87,13 @@ class RNABindingCNN(nn.Module):
         self.dropout_conv = nn.Dropout(dropout_rate * 0.5)  # Lighter dropout for conv layer
         
         # Pooling Layer: Aggregates motif information
-        self.pool_size = 2  # For local max pooling
-        if pooling_type == 'local_max':
-            self.pool = nn.MaxPool1d(kernel_size=self.pool_size)
-            # Calculate the output length after convolution and pooling
-            conv_out_len = seq_length  # With padding='same'
-            pool_out_len = conv_out_len // self.pool_size
-            fc_input_size = num_filters * pool_out_len
-        elif pooling_type == 'global_max':
-            # Global max pooling will reduce to (batch, num_filters)
-            fc_input_size = num_filters
-        else:  # 'none'
-            # No pooling, keep all positions
-            fc_input_size = num_filters * seq_length
+        self.pool_size = 2
+        self.pool = nn.MaxPool1d(kernel_size=self.pool_size)
+
+        # Calculate the output length after convolution and pooling
+        conv_out_len = seq_length
+        pool_out_len = conv_out_len // self.pool_size
+        fc_input_size = num_filters * pool_out_len
         
         # Fully Connected Layers: Map motif features to binding intensity
         self.fc1 = nn.Linear(fc_input_size, 128)
@@ -115,7 +104,6 @@ class RNABindingCNN(nn.Module):
         
         self.fc3 = nn.Linear(64, 1)  # Output: single binding intensity value
         
-        # Dropout for regularization
         self.dropout = nn.Dropout(dropout_rate)
         
     def forward(self, x):
@@ -138,19 +126,10 @@ class RNABindingCNN(nn.Module):
         x = F.relu(x)
         x = self.dropout_conv(x)
         
-        # Pooling: Aggregate motif information
-        if self.pooling_type == 'global_max':
-            # Global max: Take max across all positions
-            # Captures if motif is present anywhere in sequence
-            x = torch.max(x, dim=2)[0]  # -> (batch, num_filters)
-        elif self.pooling_type == 'local_max':
-            # Local max: Preserve some positional information
-            x = self.pool(x)  # -> (batch, num_filters, ~20)
-            x = torch.flatten(x, 1)  # Flatten
-        else:  # 'none'
-            # No pooling: Preserve full positional information
-            x = torch.flatten(x, 1)  # Flatten
-        
+        # Local max: Preserve some positional information
+        x = self.pool(x)  # -> (batch, num_filters, ~20)
+        x = torch.flatten(x, 1)  # Flatten
+
         # Fully connected layers with BatchNorm, ReLU and dropout
         x = self.fc1(x)
         x = self.bn_fc1(x)
@@ -399,8 +378,7 @@ def hyperparameter_search(
     
     This function tests different combinations of:
     - Filter sizes (32, 64, 128)
-    - Kernel sizes (6, 8, 10)
-    - Pooling types (global_max, local_max, none)
+    - Kernel sizes (6, 8, 10, 12)
     - Dropout rates (0.2, 0.3, 0.5, 0.6)
     - Learning rates (1e-3, 2e-4, 5e-4)
     
@@ -423,7 +401,6 @@ def hyperparameter_search(
     param_grid = {
         'num_filters': [32, 64, 96],
         'kernel_size': [6, 8, 10, 12],
-        'pooling_type': ['global_max', 'local_max', 'none'],
         'dropout_rate': [0.2, 0.3, 0.5, 0.6],
         'learning_rate': [1e-3, 2e-4, 5e-4]
     }
@@ -451,23 +428,17 @@ def hyperparameter_search(
     # Best: 64 filters, kernel 8, dropout 0.5, learning_rate 0.0005
     test_configs = [
         # Rank 1: Baseline (best performer - keep it)
-        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'local_max', 
-         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        {'num_filters': 64, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
         # Variation 1: Lower learning rate for better convergence
-        {'num_filters': 64, 'kernel_size': 8, 'pooling_type': 'local_max', 
-         'dropout_rate': 0.5, 'learning_rate': 2e-4},
+        {'num_filters': 64, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 2e-4},
         # Variation 2: Increase filters to capture more motifs
-        {'num_filters': 96, 'kernel_size': 8, 'pooling_type': 'local_max', 
-         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        {'num_filters': 96, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
         # Variation 3: Smaller kernel for shorter motifs
-        {'num_filters': 64, 'kernel_size': 6, 'pooling_type': 'local_max', 
-         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        {'num_filters': 64, 'kernel_size': 6, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
         # Variation 4: Larger kernel for longer motifs
-        {'num_filters': 64, 'kernel_size': 12, 'pooling_type': 'local_max', 
-         'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        {'num_filters': 64, 'kernel_size': 12, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
         # Variation 5: More filters + lower learning rate (refined search)
-        {'num_filters': 96, 'kernel_size': 8, 'pooling_type': 'local_max', 
-         'dropout_rate': 0.5, 'learning_rate': 3e-4},
+        {'num_filters': 96, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 3e-4},
     ]
     
     total_configs = len(test_configs)
@@ -482,7 +453,6 @@ def hyperparameter_search(
         model = RNABindingCNN(
             num_filters=params['num_filters'],
             kernel_size=params['kernel_size'],
-            pooling_type=params['pooling_type'],
             dropout_rate=params['dropout_rate']
         ).to(device)
         
@@ -664,7 +634,6 @@ def main():
     model = RNABindingCNN(
         num_filters=best_config['num_filters'],
         kernel_size=best_config['kernel_size'],
-        pooling_type=best_config['pooling_type'],
         dropout_rate=best_config['dropout_rate']
     ).to(device)
 

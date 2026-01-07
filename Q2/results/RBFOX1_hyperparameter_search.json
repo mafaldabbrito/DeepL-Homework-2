@@ -1,0 +1,19 @@
+{
+  "best_config": {
+    "num_filters": 64,
+    "kernel_size": 8,
+    "dropout_rate": 0.5,
+    "learning_rate": 0.0005
+  },
+  "all_results": [
+    {
+      "params": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.5993025053085004
+    }
+  ]
+}
