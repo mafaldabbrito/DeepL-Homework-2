@@ -1,0 +1,186 @@
+{
+  "protein": "RBFOX1",
+  "notes": "Combined ranking from all RBFOX1 hyperparameter search runs, sorted by validation correlation (desc).",
+  "full_ranking": [
+    {
+      "rank": 1,
+      "val_correlation": 0.6041804207946516,
+      "source_file": "RBFOX1_best_three_models (5).json",
+      "config": {
+        "num_filters": 96,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 2,
+      "val_correlation": 0.6015563952337065,
+      "source_file": "RBFOX1_best_three_models (1).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 3,
+      "val_correlation": 0.5990570370419567,
+      "source_file": "RBFOX1_best_three_models (3).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 12,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 4,
+      "val_correlation": 0.5988307889120512,
+      "source_file": "RBFOX1_best_three_models (4).json",
+      "config": {
+        "num_filters": 128,
+        "kernel_size": 12,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 5,
+      "val_correlation": 0.598580624893367,
+      "source_file": "RBFOX1_best_three_models (3).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.6,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 6,
+      "val_correlation": 0.5975870644033034,
+      "source_file": "RBFOX1_best_three_models (5).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 10,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 7,
+      "val_correlation": 0.5971968288064636,
+      "source_file": "RBFOX1_best_three_models (3).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0003
+      }
+    },
+    {
+      "rank": 8,
+      "val_correlation": 0.5965217642021052,
+      "source_file": "RBFOX1_best_three_models (1).json",
+      "config": {
+        "num_filters": 128,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.001
+      }
+    },
+    {
+      "rank": 9,
+      "val_correlation": 0.5962801893571933,
+      "source_file": "RBFOX1_best_three_models (1).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 10,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.001
+      }
+    },
+    {
+      "rank": 10,
+      "val_correlation": 0.5962134474420927,
+      "source_file": "RBFOX1_best_three_models (4).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 12,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0002
+      }
+    },
+    {
+      "rank": 11,
+      "val_correlation": 0.5961514188157293,
+      "source_file": "RBFOX1_best_three_models (5).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 12,
+      "val_correlation": 0.5954790802729399,
+      "source_file": "RBFOX1_best_three_models (2).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0002
+      }
+    },
+    {
+      "rank": 13,
+      "val_correlation": 0.5915686159851067,
+      "source_file": "RBFOX1_best_three_models (4).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 14,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 14,
+      "val_correlation": 0.5913361103272692,
+      "source_file": "RBFOX1_best_three_models (2).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.3,
+        "learning_rate": 0.0005
+      }
+    },
+    {
+      "rank": 15,
+      "val_correlation": 0.5870884978676222,
+      "source_file": "RBFOX1_best_three_models (2).json",
+      "config": {
+        "num_filters": 64,
+        "kernel_size": 8,
+        "pooling_type": "local_max",
+        "dropout_rate": 0.3,
+        "learning_rate": 0.0003
+      }
+    }
+  ]
+}
