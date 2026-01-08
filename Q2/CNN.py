@@ -21,6 +21,7 @@ Key Features:
 import argparse
 import json
 import os
+import time
 import numpy as np
 import torch
 import torch.nn as nn
@@ -126,9 +127,9 @@ class RNABindingCNN(nn.Module):
         x = F.relu(x)
         x = self.dropout_conv(x)
         
-        # Local max: Preserve some positional information
-        x = self.pool(x)  # -> (batch, num_filters, ~20)
-        x = torch.flatten(x, 1)  # Flatten
+        # Max Pooling
+        x = self.pool(x)
+        x = torch.flatten(x, 1) 
 
         # Fully connected layers with BatchNorm, ReLU and dropout
         x = self.fc1(x)
@@ -141,7 +142,7 @@ class RNABindingCNN(nn.Module):
         x = F.relu(x)
         x = self.dropout(x)
         
-        x = self.fc3(x)  # -> (batch, 1)
+        x = self.fc3(x)
         
         return x
 
@@ -201,11 +202,6 @@ def train_epoch(
         total_loss += loss.item()
         total_corr += corr.item()
         num_batches += 1
-        
-        # Print progress every 50 batches
-        if (batch_idx + 1) % 50 == 0:
-            print(f"  Batch {batch_idx + 1}/{len(train_loader)}: "
-                  f"Loss = {loss.item():.4f}, Corr = {corr.item():.4f}")
     
     avg_loss = total_loss / num_batches
     avg_corr = total_corr / num_batches
@@ -293,6 +289,8 @@ def train_model(
     Returns:
         history: Dictionary containing training metrics
     """
+    start_time = time.time()
+    
     print(f"\n{'='*70}")
     print(f"Starting Training on {device}")
     print(f"{'='*70}")
@@ -317,19 +315,19 @@ def train_model(
         print(f"\nEpoch {epoch + 1}/{num_epochs}")
         print(f"{'-'*70}")
         
-        # Train for one epoch
+
         train_loss, train_corr = train_epoch(model, train_loader, optimizer, device)
         
-        # Evaluate on validation set
+
         val_loss, val_corr = evaluate(model, val_loader, device)
         
-        # Store metrics
+
         history['train_loss'].append(train_loss)
         history['train_corr'].append(train_corr)
         history['val_loss'].append(val_loss)
         history['val_corr'].append(val_corr)
         
-        # Print epoch summary
+
         print(f"\nEpoch {epoch + 1} Summary:")
         print(f"  Train Loss: {train_loss:.4f} | Train Corr: {train_corr:.4f}")
         print(f"  Val Loss:   {val_loss:.4f} | Val Corr:   {val_corr:.4f}")
@@ -355,9 +353,14 @@ def train_model(
                 print(f"  Best validation correlation: {best_val_corr:.4f}")
                 break
     
+    elapsed_time = time.time() - start_time
+    
     print(f"\n{'='*70}")
     print(f"Training Complete! Best Val Correlation: {best_val_corr:.4f}")
+    print(f"Total Training Time: {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
     print(f"{'='*70}\n")
+    
+    history['elapsed_time'] = elapsed_time
     
     return history
 
@@ -399,7 +402,7 @@ def hyperparameter_search(
     
     # Define hyperparameter grid
     param_grid = {
-        'num_filters': [32, 64, 96],
+        'num_filters': [32, 64, 96, 128],
         'kernel_size': [6, 8, 10, 12],
         'dropout_rate': [0.2, 0.3, 0.5, 0.6],
         'learning_rate': [1e-3, 2e-4, 5e-4]
@@ -414,10 +417,7 @@ def hyperparameter_search(
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     
-    # Generate all combinations (this could be large!)
-    # For practical purposes, we'll do a smaller random search
     print(f"\nNote: Full grid search would test {np.prod([len(v) for v in param_grid.values()])} combinations.")
-    print("Performing smart sampling of hyperparameter space...\n")
     
     # Sample a subset of combinations
     all_results = []
@@ -426,17 +426,13 @@ def hyperparameter_search(
     
     # 6 optimized variations around the best performer
     test_configs = [
-        # Rank 1: Current best (keep for reproducibility)
+        # Rank 1: Current best
         {'num_filters': 96, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
         # Rank 2: Baseline reference
         {'num_filters': 64, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 1: Higher capacity (test if still underfitting)
         {'num_filters': 128, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 2: Slightly wider motif around best kernel
         {'num_filters': 96, 'kernel_size': 10, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 3: Slightly smaller kernel around best kernel
         {'num_filters': 96, 'kernel_size': 6, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 4: Capacity increase + mild regularization
         {'num_filters': 128, 'kernel_size': 8, 'dropout_rate': 0.6, 'learning_rate': 5e-4},
     ]
     
@@ -463,10 +459,10 @@ def hyperparameter_search(
             num_epochs=num_epochs,
             learning_rate=params['learning_rate'],
             device=device,
-            save_path=None  # Don't save intermediate models
+            save_path=None 
         )
         
-        # Get final validation correlation
+
         final_val_corr = history['val_corr'][-1]
         
         # Store results
@@ -579,7 +575,7 @@ def main():
             config=config,
             device=device,
             batch_size=args.batch_size,
-            num_epochs=20  # Fewer epochs for search
+            num_epochs=20
         )
 
         results_file = f'results/{args.protein}_hyperparameter_search.json'
@@ -668,7 +664,9 @@ def main():
         'config': best_config,
         'test_loss': test_loss,
         'test_correlation': test_corr,
-        'history': {k: [float(v) for v in vals] for k, vals in history.items()}
+        'training_time_seconds': history['elapsed_time'],
+        'training_time_minutes': history['elapsed_time'] / 60,
+        'history': {k: [float(v) if not isinstance(v, list) else v for v in vals] for k, vals in history.items()}
     }
 
     results_file = f'results/{args.protein}_final_results.json'
