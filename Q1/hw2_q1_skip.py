@@ -7,7 +7,7 @@ from medmnist import INFO
 
 # ================= USER CONFIGURATION =================
 MAXPOOL = False
-SOFTMAX = False
+SOFTMAX = True
 
 if MAXPOOL:
     OUTPUT_DIR = "./results_q1_2"

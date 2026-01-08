@@ -27,20 +27,17 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(device)
 
 # Data Loading
-
 data_flag = 'bloodmnist'
 print(data_flag)
 info = INFO[data_flag]
 print(len(info['label']))
 n_classes = len(info['label'])
 
-# Transformations
 transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[.5], std=[.5])
 ])
 
-# --------- Before Training ----------
 total_start = time.time()
 
 class NetMaxPool(nn.Module):
@@ -48,35 +45,24 @@ class NetMaxPool(nn.Module):
         super(NetMaxPool, self).__init__()
         self.use_softmax = use_softmax
         
-        # Define the MaxPool layer (kernel_size=2, stride=2)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         
-        # Convs
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
         
-        # Linear Layers (Input size 1152)
         self.fc1 = nn.Linear(128 * 3 * 3, 256) 
-        self.fc2 = nn.Linear(256, 8) # 8 classes
+        self.fc2 = nn.Linear(256, 8)
         
-        # Define Softmax
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
-        # Block 1: Conv -> ReLU -> MaxPool
         x = self.pool(F.relu(self.conv1(x)))
-        
-        # Block 2: Conv -> ReLU -> MaxPool
         x = self.pool(F.relu(self.conv2(x)))
-        
-        # Block 3: Conv -> ReLU -> MaxPool
         x = self.pool(F.relu(self.conv3(x)))
         
-        # Flatten
         x = torch.flatten(x, 1)
         
-        # Linear
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         
@@ -86,37 +72,27 @@ class NetMaxPool(nn.Module):
         
         return x
 
-#Training Function
-
 def train_epoch(loader, model, criterion, optimizer):
-    model.train() # Set model to training mode
+    model.train()
     total_loss = 0.0
     
     for imgs, labels in loader:
-        # Move data to the defined device (GPU/CPU)
         imgs = imgs.to(device)
-        labels = labels.squeeze().long().to(device) # Ensure labels are long tensors
+        labels = labels.squeeze().long().to(device)
         
-        # 1. Zero gradients
         optimizer.zero_grad()
-        
-        # 2. Forward pass
+
         outputs = model(imgs)
-        
-        # 3. Compute loss
+
         loss = criterion(outputs, labels)
-        
-        # 4. Backward pass
+
         loss.backward()
         
-        # 5. Optimizer step
         optimizer.step()
         
         total_loss += loss.item()
 
     return total_loss / len(loader)
-
-#Evaluation Function
 
 def evaluate(loader, model):
     model.eval()
@@ -143,7 +119,6 @@ def plot(epochs, plottable, ylabel='', name=''):
 
 
 def main_q1_2(use_softmax):
-    # Hyperparameters
     epochs = 200
     batch_size = 64
     lr = 0.001
@@ -156,16 +131,12 @@ def main_q1_2(use_softmax):
     val_loader   = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader  = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    # initialize the model
     model = NetMaxPool(use_softmax).to(device) 
 
-    # get an optimizer (Adam)
     optimizer = optim.Adam(model.parameters(), lr=lr)
-
-    # get a loss criterion (CrossEntropyLoss) 
+ 
     criterion = nn.CrossEntropyLoss()
 
-    # training loop
     train_losses = []
     val_accs = []
     best_val_acc = 0.0
@@ -205,30 +176,21 @@ def main_q1_2(use_softmax):
         'epoch': epochs
     }
 
+    # save model
     filename_suffix = "softmax" if use_softmax else "logits"
     torch.save(checkpoint, f"maxpool_{filename_suffix}_checkpoint.pth")
     print(f"Saved checkpoint for {filename_suffix} version.")
-
-    #Save the model
-    #torch.save(model.state_dict(), "bloodmnist_cnn.pth")
-    #print("Model saved as bloodmnist_cnn.pth")
 
     print(f"\nRESULTS ({filename_suffix}):")
     print(f"Best Validation Accuracy: {best_val_acc:.4f}")
     print(f"Test Accuracy at Best Val: {best_model_test_acc:.4f}")
 
 
-    # --------- After Training ----------
     total_end = time.time()
     total_time = total_end - total_start
 
     print(f"\nTotal training time: {total_time/60:.2f} minutes "
         f"({total_time:.2f} seconds)")
-
-    #print('Final Test acc: %.4f' % (evaluate(model, test_X, test_y)))
-
-    # config = "{}-{}-{}-{}-{}".format(opt.learning_rate, opt.optimizer, opt.no_maxpool, opt.no_softmax,)
-    # config = "{}".format(str(0.1))
 
     results_dir = './results_q1_2'
     if not os.path.exists(results_dir):
