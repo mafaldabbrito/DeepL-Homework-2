@@ -666,7 +666,7 @@ def main():
         'training_time_seconds': history['elapsed_time'],
         'training_time_minutes': history['elapsed_time'] / 60,
         # Serialize lists to floats; scalars remain floats
-        'history': {k: ([float(v) for v in vals] if isinstance(vals, list) else float(vals)) for k, vals in history.items()}
+        "history": {k: ([float(v) for v in vals] if isinstance(vals, list) else float(vals)) for k, vals in history.items()}
     }
 
     results_file = f'results/{args.protein}_final_results.json'
