@@ -9,6 +9,7 @@ features to binding affinity.
 import argparse
 import json
 import os
+import time
 from typing import Dict, List, Tuple, Optional
 
 
@@ -203,8 +204,10 @@ def train_model(
 	device: torch.device,
 	save_path: Optional[str] = None,
 	weight_decay: float = 1e-3,
-	early_stopping_patience: int = 3
+	early_stopping_patience: int = 5
 ) -> Dict[str, List[float]]:
+	start_time = time.time()
+	
 	print(f"\n{'='*70}")
 	print(f"Starting Training on {device}")
 	print(f"{'='*70}")
@@ -263,10 +266,14 @@ def train_model(
 				print(f"{'='*70}\n")
 				break
 
+	elapsed_time = time.time() - start_time
+	
 	print(f"\n{'='*70}")
 	print(f"Training Complete! Best Val Correlation: {best_val_corr:.4f}")
+	print(f"Total Training Time: {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
 	print(f"{'='*70}\n")
 
+	history['elapsed_time'] = elapsed_time
 	return history
 
 
@@ -295,12 +302,12 @@ def hyperparameter_search(
 	val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 	test_configs = [
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 32, "lstm_layers": 1, "dropout_rate": 0.6, "learning_rate": 5e-4},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 1, "dropout_rate": 0.6, "learning_rate": 5e-4},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 1, "dropout_rate": 0.6, "learning_rate": 5e-4},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 32, "lstm_layers": 2, "dropout_rate": 0.6, "learning_rate": 5e-4},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 2, "dropout_rate": 0.6, "learning_rate": 5e-4},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 2, "dropout_rate": 0.6, "learning_rate": 5e-4},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64,  "lstm_layers": 1, "dropout_rate": 0.2, "learning_rate": 1e-3},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96,  "lstm_layers": 1, "dropout_rate": 0.2, "learning_rate": 1e-3},
+		# Slightly higher capacity
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 128, "lstm_layers": 1, "dropout_rate": 0.3, "learning_rate": 1e-3},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 2, "dropout_rate": 0.2, "learning_rate": 1e-3},
+    	{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 2, "dropout_rate": 0.3, "learning_rate": 1e-3},
 	]
 
 	best_config: Optional[Dict] = None
@@ -388,7 +395,7 @@ def main():
 	parser = argparse.ArgumentParser(description="RNAcompete CNN+BiLSTM trainer and data explorer")
 	parser.add_argument("--protein", default="RBFOX1", help="Protein name to process")
 	parser.add_argument("--batch-size", type=int, default=64, help="Batch size for training")
-	parser.add_argument("--epochs", type=int, default=30, help="Number of training epochs")
+	parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
 	parser.add_argument("--hyperparam-search", action="store_true", help="Run hyperparameter search instead of default config")
 	parser.add_argument("--explore-only", action="store_true", help="Only run data summary/plots and skip training")
 	args = parser.parse_args()
@@ -498,7 +505,9 @@ def main():
 		"config": best_config,
 		"test_loss": test_loss,
 		"test_correlation": test_corr,
-		"history": {k: [float(v) for v in vals] for k, vals in history.items()},
+		"training_time_seconds": history['elapsed_time'],
+		"training_time_minutes": history['elapsed_time'] / 60,
+		"history": {k: [float(v) if not isinstance(v, list) else v for v in vals] for k, vals in history.items()},
 	}
 
 	results_file = f"results/{args.protein}_final_results_bilstm.json"
@@ -506,7 +515,8 @@ def main():
 		json.dump(final_results, f, indent=2)
 	print(f"\nResults saved to {results_file}")
 
-	epochs = list(range(1, args.epochs + 1))
+	actual_epochs = len(history['train_loss'])
+	epochs = list(range(1, actual_epochs + 1))
 
 	plot(
 		epochs=epochs,
