@@ -539,7 +539,7 @@ def main():
     parser = argparse.ArgumentParser(description="RNAcompete CNN trainer and data explorer")
     parser.add_argument("--protein", default="RBFOX1", help="Protein name to process")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size for training")
-    parser.add_argument("--epochs", type=int, default=30, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
     parser.add_argument("--hyperparam-search", action="store_true", help="Run hyperparameter search instead of default config")
     parser.add_argument("--explore-only", action="store_true", help="Only run data summary/plots and skip training")
     args = parser.parse_args()
@@ -596,7 +596,6 @@ def main():
         best_config = {
             'num_filters': 96,
             'kernel_size': 8,
-            'pooling_type': 'local_max',
             'dropout_rate': 0.6,
             'learning_rate': 5e-4
         }
@@ -666,7 +665,8 @@ def main():
         'test_correlation': test_corr,
         'training_time_seconds': history['elapsed_time'],
         'training_time_minutes': history['elapsed_time'] / 60,
-        'history': {k: [float(v) if not isinstance(v, list) else v for v in vals] for k, vals in history.items()}
+        # Serialize lists to floats; scalars remain floats
+        'history': {k: ([float(v) for v in vals] if isinstance(vals, list) else float(vals)) for k, vals in history.items()}
     }
 
     results_file = f'results/{args.protein}_final_results.json'
