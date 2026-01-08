@@ -2,10 +2,10 @@
   "best_config": {
     "num_filters": 96,
     "kernel_size": 8,
-    "lstm_hidden": 96,
+    "lstm_hidden": 128,
     "lstm_layers": 1,
-    "dropout_rate": 0.2,
-    "learning_rate": 0.001
+    "dropout_rate": 0.5,
+    "learning_rate": 0.0005
   },
   "all_results": [
     {
@@ -14,10 +14,10 @@
         "kernel_size": 8,
         "lstm_hidden": 96,
         "lstm_layers": 1,
-        "dropout_rate": 0.2,
-        "learning_rate": 0.001
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
       },
-      "final_val_corr": 0.6236364957666524
+      "final_val_corr": 0.6151023444667735
     },
     {
       "params": {
@@ -25,10 +25,10 @@
         "kernel_size": 8,
         "lstm_hidden": 128,
         "lstm_layers": 1,
-        "dropout_rate": 0.3,
-        "learning_rate": 0.001
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
       },
-      "final_val_corr": 0.6101343078385614
+      "final_val_corr": 0.6261021506723106
     },
     {
       "params": {
@@ -36,10 +36,10 @@
         "kernel_size": 8,
         "lstm_hidden": 64,
         "lstm_layers": 2,
-        "dropout_rate": 0.2,
-        "learning_rate": 0.001
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
       },
-      "final_val_corr": 0.6031072537367793
+      "final_val_corr": 0.6018724759709614
     },
     {
       "params": {
@@ -47,10 +47,10 @@
         "kernel_size": 8,
         "lstm_hidden": 96,
         "lstm_layers": 2,
-        "dropout_rate": 0.3,
-        "learning_rate": 0.001
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
       },
-      "final_val_corr": 0.5809192182372672
+      "final_val_corr": 0.5906460127874774
     }
   ]
 }

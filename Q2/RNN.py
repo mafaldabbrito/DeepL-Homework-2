@@ -301,14 +301,12 @@ def hyperparameter_search(
 	train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 	val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-	test_configs = [
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64,  "lstm_layers": 1, "dropout_rate": 0.2, "learning_rate": 1e-3},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96,  "lstm_layers": 1, "dropout_rate": 0.2, "learning_rate": 1e-3},
-		# Slightly higher capacity
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 128, "lstm_layers": 1, "dropout_rate": 0.3, "learning_rate": 1e-3},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 2, "dropout_rate": 0.2, "learning_rate": 1e-3},
-    	{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 2, "dropout_rate": 0.3, "learning_rate": 1e-3},
-	]
+	test_configs = [       
+		{"num_filters": 96, "kernel_size": 8, "lstm_hidden": 96,  "lstm_layers": 1, "dropout_rate": 0.5, "learning_rate": 5e-4},
+		{"num_filters": 96, "kernel_size": 8, "lstm_hidden": 128, "lstm_layers": 1, "dropout_rate": 0.5, "learning_rate": 5e-4},
+		{"num_filters": 96, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 2, "dropout_rate": 0.5, "learning_rate": 5e-4},
+    	{"num_filters": 96, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 2, "dropout_rate": 0.5, "learning_rate": 5e-4},
+    ]
 
 	best_config: Optional[Dict] = None
 	best_val_corr = -1.0
@@ -436,12 +434,12 @@ def main():
 
 	else:
 		best_config = {
-			"num_filters": 64,
+			"num_filters": 96,
 			"kernel_size": 8,
-			"lstm_hidden": 64,
+			"lstm_hidden": 128,
 			"lstm_layers": 1,
-			"dropout_rate": 0.3,
-			"learning_rate": 1e-3,
+			"dropout_rate": 0.5,
+			"learning_rate": 5e-4,
 		}
 		print("\nUsing default configuration:")
 		for key, value in best_config.items():
