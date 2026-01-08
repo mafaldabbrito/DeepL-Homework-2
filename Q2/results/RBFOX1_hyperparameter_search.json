@@ -1,6 +1,6 @@
 {
   "best_config": {
-    "num_filters": 64,
+    "num_filters": 96,
     "kernel_size": 8,
     "dropout_rate": 0.5,
     "learning_rate": 0.0005
@@ -8,12 +8,57 @@
   "all_results": [
     {
       "params": {
+        "num_filters": 96,
+        "kernel_size": 8,
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.6054096185560252
+    },
+    {
+      "params": {
         "num_filters": 64,
         "kernel_size": 8,
         "dropout_rate": 0.5,
         "learning_rate": 0.0005
       },
-      "final_val_corr": 0.5993025053085004
+      "final_val_corr": 0.5969340670804446
+    },
+    {
+      "params": {
+        "num_filters": 128,
+        "kernel_size": 8,
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.5962434875079744
+    },
+    {
+      "params": {
+        "num_filters": 96,
+        "kernel_size": 10,
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.6045138639069363
+    },
+    {
+      "params": {
+        "num_filters": 96,
+        "kernel_size": 6,
+        "dropout_rate": 0.5,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.5941594957672949
+    },
+    {
+      "params": {
+        "num_filters": 128,
+        "kernel_size": 8,
+        "dropout_rate": 0.6,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.6015783695390433
     }
   ]
 }
