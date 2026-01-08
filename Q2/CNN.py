@@ -276,7 +276,7 @@ def train_model(
     device: torch.device,
     save_path: Optional[str] = None,
     weight_decay: float = 1e-3,
-    early_stopping_patience: int = 3
+    early_stopping_patience: int = 5
 ) -> Dict[str, List[float]]:
     """
     Train the model for multiple epochs with validation.
@@ -424,21 +424,20 @@ def hyperparameter_search(
     best_val_corr = -1.0
     best_config = None
     
-    # 6 optimized variations around the best performer (Rank 1: 0.6016 correlation)
-    # Best: 64 filters, kernel 8, dropout 0.5, learning_rate 0.0005
+    # 6 optimized variations around the best performer
     test_configs = [
-        # Rank 1: Baseline (best performer - keep it)
-        {'num_filters': 64, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 1: Lower learning rate for better convergence
-        {'num_filters': 64, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 2e-4},
-        # Variation 2: Increase filters to capture more motifs
+        # Rank 1: Current best (keep for reproducibility)
         {'num_filters': 96, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 3: Smaller kernel for shorter motifs
-        {'num_filters': 64, 'kernel_size': 6, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 4: Larger kernel for longer motifs
-        {'num_filters': 64, 'kernel_size': 12, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
-        # Variation 5: More filters + lower learning rate (refined search)
-        {'num_filters': 96, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 3e-4},
+        # Rank 2: Baseline reference
+        {'num_filters': 64, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 1: Higher capacity (test if still underfitting)
+        {'num_filters': 128, 'kernel_size': 8, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 2: Slightly wider motif around best kernel
+        {'num_filters': 96, 'kernel_size': 10, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 3: Slightly smaller kernel around best kernel
+        {'num_filters': 96, 'kernel_size': 6, 'dropout_rate': 0.5, 'learning_rate': 5e-4},
+        # Variation 4: Capacity increase + mild regularization
+        {'num_filters': 128, 'kernel_size': 8, 'dropout_rate': 0.6, 'learning_rate': 5e-4},
     ]
     
     total_configs = len(test_configs)
