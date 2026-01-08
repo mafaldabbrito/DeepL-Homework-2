@@ -11,7 +11,7 @@ import json
 import os
 from typing import Dict, List, Tuple, Optional
 
-import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -63,6 +63,11 @@ class RNABindingCNNBiLSTM(nn.Module):
 			padding=kernel_size // 2,
 		)
 
+		# Batch Normalization after convolution for better regularization
+		self.bn1 = nn.BatchNorm1d(num_filters)
+
+		self.dropout_conv = nn.Dropout(dropout_rate * 0.5)
+
 		# Context encoder
 		self.lstm = nn.LSTM(
 			input_size=num_filters,
@@ -75,7 +80,9 @@ class RNABindingCNNBiLSTM(nn.Module):
 		# FC head
 		fc_in = lstm_hidden * self.num_directions
 		self.fc1 = nn.Linear(fc_in, 128)
+		self.bn_fc1 = nn.BatchNorm1d(128)
 		self.fc2 = nn.Linear(128, 64)
+		self.bn_fc2 = nn.BatchNorm1d(64)
 		self.fc3 = nn.Linear(64, 1)
 
 		self.dropout = nn.Dropout(dropout_rate)
@@ -83,7 +90,10 @@ class RNABindingCNNBiLSTM(nn.Module):
 	def forward(self, x: torch.Tensor) -> torch.Tensor:
 		# x: (batch, seq_len, 4)
 		x = x.transpose(1, 2)  # -> (batch, 4, seq_len)
-		x = F.relu(self.conv1(x))  # -> (batch, filters, seq_len)
+		x = self.conv1(x)
+		x = self.bn1(x)
+		x = F.relu(x)  # -> (batch, filters, seq_len)
+		x = self.dropout_conv(x)
 
 		# Prepare for LSTM
 		x = x.transpose(1, 2)  # -> (batch, seq_len, filters)
@@ -95,10 +105,14 @@ class RNABindingCNNBiLSTM(nn.Module):
 		backward_last = h_n[-1, 1]
 		contextual = torch.cat([forward_last, backward_last], dim=1)
 
-		x = F.relu(self.fc1(contextual))
+		x = self.fc1(contextual)
+		x = self.bn_fc1(x)
+		x = F.relu(x)
 		x = self.dropout(x)
 
-		x = F.relu(self.fc2(x))
+		x = self.fc2(x)
+		x = self.bn_fc2(x)
+		x = F.relu(x)
 		x = self.dropout(x)
 
 		x = self.fc3(x)
@@ -140,11 +154,11 @@ def train_epoch(
 		total_corr += corr.item()
 		num_batches += 1
 
-		if (batch_idx + 1) % 50 == 0:
-			print(
-				f"  Batch {batch_idx + 1}/{len(train_loader)}: "
-				f"Loss = {loss.item():.4f}, Corr = {corr.item():.4f}"
-			)
+		# if (batch_idx + 1) % 50 == 0:
+		# 	print(
+		# 		f"  Batch {batch_idx + 1}/{len(train_loader)}: "
+		# 		f"Loss = {loss.item():.4f}, Corr = {corr.item():.4f}"
+		# 	)
 
 	avg_loss = total_loss / num_batches
 	avg_corr = total_corr / num_batches
