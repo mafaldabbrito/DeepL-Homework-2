@@ -202,12 +202,15 @@ def train_model(
 	learning_rate: float,
 	device: torch.device,
 	save_path: Optional[str] = None,
+	weight_decay: float = 1e-3,
+	early_stopping_patience: int = 3
 ) -> Dict[str, List[float]]:
 	print(f"\n{'='*70}")
 	print(f"Starting Training on {device}")
 	print(f"{'='*70}")
+	print(f"Regularization: Weight Decay = {weight_decay}, Early Stopping Patience = {early_stopping_patience}")
 
-	optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+	optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 	history: Dict[str, List[float]] = {
 		"train_loss": [],
@@ -217,6 +220,7 @@ def train_model(
 	}
 
 	best_val_corr = -1.0
+	patience_counter = 0
 
 	for epoch in range(num_epochs):
 		print(f"\nEpoch {epoch + 1}/{num_epochs}")
@@ -238,6 +242,7 @@ def train_model(
 
 		if val_corr > best_val_corr:
 			best_val_corr = val_corr
+			patience_counter = 0
 			if save_path:
 				torch.save(
 					{
@@ -249,6 +254,14 @@ def train_model(
 					save_path,
 				)
 				print(f"  >>> New best model saved! (Val Corr: {val_corr:.4f})")
+		else:
+			patience_counter += 1
+			print(f"  No improvement. Patience: {patience_counter}/{early_stopping_patience}")
+			if patience_counter >= early_stopping_patience:
+				print(f"\n{'='*70}")
+				print(f"Early stopping triggered after {epoch + 1} epochs")
+				print(f"{'='*70}\n")
+				break
 
 	print(f"\n{'='*70}")
 	print(f"Training Complete! Best Val Correlation: {best_val_corr:.4f}")
@@ -282,11 +295,12 @@ def hyperparameter_search(
 	val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 	test_configs = [
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 1, "dropout_rate": 0.3, "learning_rate": 1e-3},
-		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 1, "dropout_rate": 0.3, "learning_rate": 8e-4},
-		{"num_filters": 96, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 1, "dropout_rate": 0.3, "learning_rate": 8e-4},
-		{"num_filters": 64, "kernel_size": 6, "lstm_hidden": 64, "lstm_layers": 1, "dropout_rate": 0.4, "learning_rate": 1e-3},
-		{"num_filters": 64, "kernel_size": 10, "lstm_hidden": 64, "lstm_layers": 1, "dropout_rate": 0.3, "learning_rate": 1e-3},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 32, "lstm_layers": 1, "dropout_rate": 0.6, "learning_rate": 5e-4},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 1, "dropout_rate": 0.6, "learning_rate": 5e-4},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 1, "dropout_rate": 0.6, "learning_rate": 5e-4},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 32, "lstm_layers": 2, "dropout_rate": 0.6, "learning_rate": 5e-4},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 64, "lstm_layers": 2, "dropout_rate": 0.6, "learning_rate": 5e-4},
+		{"num_filters": 64, "kernel_size": 8, "lstm_hidden": 96, "lstm_layers": 2, "dropout_rate": 0.6, "learning_rate": 5e-4},
 	]
 
 	best_config: Optional[Dict] = None
