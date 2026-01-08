@@ -1,0 +1,61 @@
+{
+  "best_config": {
+    "num_filters": 96,
+    "kernel_size": 8,
+    "lstm_hidden": 128,
+    "lstm_layers": 1,
+    "dropout_rate": 0.5,
+    "num_attention_heads": 1,
+    "learning_rate": 0.0005
+  },
+  "all_results": [
+    {
+      "params": {
+        "num_filters": 96,
+        "kernel_size": 8,
+        "lstm_hidden": 128,
+        "lstm_layers": 1,
+        "dropout_rate": 0.5,
+        "num_attention_heads": 1,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.6152602902932256
+    },
+    {
+      "params": {
+        "num_filters": 96,
+        "kernel_size": 8,
+        "lstm_hidden": 128,
+        "lstm_layers": 1,
+        "dropout_rate": 0.5,
+        "num_attention_heads": 2,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.6080199993494652
+    },
+    {
+      "params": {
+        "num_filters": 96,
+        "kernel_size": 8,
+        "lstm_hidden": 128,
+        "lstm_layers": 1,
+        "dropout_rate": 0.5,
+        "num_attention_heads": 4,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.6030453830878362
+    },
+    {
+      "params": {
+        "num_filters": 96,
+        "kernel_size": 8,
+        "lstm_hidden": 128,
+        "lstm_layers": 1,
+        "dropout_rate": 0.5,
+        "num_attention_heads": 8,
+        "learning_rate": 0.0005
+      },
+      "final_val_corr": 0.6117229826096199
+    }
+  ]
+}
